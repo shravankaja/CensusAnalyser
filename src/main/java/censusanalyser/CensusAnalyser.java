@@ -9,11 +9,12 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class CensusAnalyser {
+public class CensusAnalyser<T> {
     Scanner sc = new Scanner(System.in);
     private static final String INDIA_CENSUS_CSV_FILE_PATH = "./src/test/resources/IndiaStateCensusData.csv";
     private static final String WRONG_CSV_FILE_PATH = "./src/main/resources/IndiaStateCensusData.csv";
     private static final String WRONG_TYPE_FILE_PATH = "./src/main/resources/IndiaStateCensusData.txt";
+    int numberOfEntries;
 
     public int loadIndiaCensusData(String csvFilePath) throws CensusAnalyserException {
         try {
@@ -58,4 +59,45 @@ public class CensusAnalyser {
     public void throwException() {
         throw new IllegalArgumentException();
     }
+
+    public int loadStateCodeCsv(String csvFilePath) throws CensusAnalyserException {
+        try {
+            if (!csvFilePath.contains(".csv")) {
+                throwException();
+            }
+            Reader reader = Files.newBufferedReader(Paths.get(csvFilePath));
+            CSVReader readerCsv = new CSVReader(new FileReader(String.valueOf(csvFilePath)));
+            String[] nextLine;
+            nextLine = readerCsv.readNext();
+            if (!(nextLine[0].equals("SrNo") && nextLine[1].equals("StateName") &&
+                    nextLine[2].equals("TIN") && nextLine[3].equals("StateCode"))) {
+                throw new CensusAnalyserException();
+            }
+            CsvToBeanBuilder<StateCode> csvToBeanBuilder = new CsvToBeanBuilder<>(reader);
+            csvToBeanBuilder.withType(StateCode.class);
+            csvToBeanBuilder.withIgnoreLeadingWhiteSpace(true);
+            CsvToBean<StateCode> csvToBean = csvToBeanBuilder.build();
+            Iterator<StateCode> censusCSVIterator = csvToBean.iterator();
+            int namOfEateries = 0;
+            while (censusCSVIterator.hasNext()) {
+                namOfEateries++;
+                StateCode censusData = censusCSVIterator.next();
+            }
+            return namOfEateries;
+
+        } catch (IllegalArgumentException e) {
+            throw new CensusAnalyserException(e.getMessage(),
+                    CensusAnalyserException.ExceptionType.WRONG_FILE_TYPE);
+        } catch (IOException e) {
+            throw new CensusAnalyserException(e.getMessage(),
+                    CensusAnalyserException.ExceptionType.CENSUS_FILE_PROBLEM);
+        } catch (RuntimeException e) {
+            throw new CensusAnalyserException(e.getMessage(),
+                    CensusAnalyserException.ExceptionType.WRONG_DELIMITER);
+        } catch (CensusAnalyserException e) {
+            throw new CensusAnalyserException(e.getMessage(),
+                    CensusAnalyserException.ExceptionType.WRONG_HEADER);
+        }
+    }
 }
+
